@@ -1,0 +1,5 @@
+---
+ansible_user: root
+ansible_password: c0ntrail123
+ansible_become: true
+

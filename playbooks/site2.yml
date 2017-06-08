@@ -1,0 +1,20 @@
+- hosts: all
+  tasks:
+   - name: Install kernel headers on Redhat/Centos
+     package: name={{ item }} state=present
+     with_items:
+      - kernel-devel
+      - kernel-headers
+     when:
+       - ansible_os_family == 'RedHat'
+   - name: Get kernel version
+     shell: uname -r
+     register: kernel_version 
+   - name: Install kernel headers on Ubuntu
+     package: name={{ item }} state=present
+     with_items:
+      - linux-headers-{{kernel_version.stdout}}
+      - linux-image-extra-{{kernel_version.stdout}}
+     when:
+       - ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+

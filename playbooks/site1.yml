@@ -1,0 +1,113 @@
+- hosts: kubernetes-master,kubernetes-slaves
+  tasks:
+   - name: Setup sources for ubuntu
+     script: ./utils/set_sources_ubuntu.sh
+     when:
+       - ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+   - name: Setup sources for Centos
+     script: ./utils/set_sources_centos.sh
+     when:
+       - ansible_os_family == 'RedHat'
+
+   - name: Install packages on Ubuntu
+     package: name={{ item }} state=present
+     with_items:
+      - docker-engine
+      - kubelet
+      - kubeadm
+      - kubectl
+      - kubernetes-cni
+     when:
+       - ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+
+   - name: Install docker, k8s on centos
+     package: name={{ item }} state=present
+     with_items:
+      - docker
+      - kubelet
+      - kubeadm
+      - kubectl
+      - kubernetes-cni
+     when:
+       - ansible_os_family == 'RedHat'
+
+   - name: Enable services on centos
+     service: name={{ item }} state=started enabled=yes
+     with_items:
+      - docker
+      - kubelet
+     when:
+       - ansible_os_family == 'RedHat'
+
+   - name: Update kubeadm.conf
+     lineinfile: dest=/etc/systemd/system/kubelet.service.d/10-kubeadm.conf state=absent regexp="^Environment=\"KUBELET_NETWORK_ARGS"
+
+   - name: Update iptables
+     shell: echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables
+
+   - name: restart kubelet
+     systemd:
+       state: restarted
+       daemon_reload: yes
+       name: kubelet
+
+   - name: Sleep 10 sec
+     pause: 
+       seconds: 10
+
+- hosts: kubernetes-master
+  tasks:
+   - name: kubeadm init on master
+#     shell: "kubeadm reset > /dev/null >&1; kubeadm init --skip-preflight-checks --token {{ k8s_token }} |grep 'kubeadm join'"
+     shell: "kubeadm reset > /dev/null 2>&1; kubeadm init --skip-preflight-checks |grep 'kubeadm join'"
+     register: kubeadm_output
+   - set_fact:
+       kubejoin_cmd: "{{kubeadm_output.stdout}}"
+     tags: kubeadm_init
+   - name: flush iptables for join to happen
+     shell: iptables --flush
+     when:
+       - ansible_os_family == 'RedHat'
+
+- hosts: kubernetes-slaves
+  tasks:
+   - set_fact:
+      kubeadm: "{{hostvars[groups['kubernetes-master'][0]].kubejoin_cmd}}"
+   - name: Stop kubepods-burstable as WA for bug https://github.com/kubernetes/kubernetes/issues/43856
+     command: systemctl stop kubepods-burstable.slice
+     when: 
+       - ansible_os_family == 'RedHat'
+   - name: Reset kubeadm
+     shell: kubeadm reset
+     ignore_errors: true
+   - name: kubeadm join on slaves
+     shell: "{{kubeadm}} --skip-preflight-checks"
+     tags: kubeadm_init
+
+- hosts: kubernetes-master
+  tasks:
+   - name: Enable k8s insecure access 
+     shell: "sed -i 's/.*insecure-port.*/    - --insecure-port=8080/g' /etc/kubernetes/manifests/kube-apiserver.yaml"
+   - name: Restart kubelet
+     systemd:
+       state: restarted
+       name: kubelet
+   - name: Wait for kubelet to stabilize
+     shell: sleep 20
+   - name: Update kube-dns deployment
+     script: ./utils/update_kubedns.sh
+   - name: Create cluster role binding for contrail-kube-manager
+     shell: "kubectl create clusterrolebinding contrail-kube-manager --clusterrole=cluster-admin --serviceaccount=default:default"
+   - name: Write secret token to secret.txt
+     shell: "kubectl describe secret default | grep \"token:\" | awk '{ print $2}'"
+     register: secret_token
+   - set_fact:
+       secret_token_text: "{{secret_token.stdout}}"
+
+- hosts: localhost
+  tasks:
+   - set_fact:
+      secret_token_text: "{{hostvars[groups['kubernetes-master'][0]].secret_token_text}}"
+   - copy: content="{{ secret_token_text }}" dest={{ playbook_dir }}/secret.txt
