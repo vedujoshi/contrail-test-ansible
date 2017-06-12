@@ -11,7 +11,7 @@
        - ansible_os_family == 'RedHat'
 
    - name: Install packages on Ubuntu
-     package: name={{ item }} state=present
+     apt: name={{ item }} state=present allow_unauthenticated=yes
      with_items:
       - docker-engine
       - kubelet
