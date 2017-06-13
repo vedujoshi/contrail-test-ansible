@@ -1,0 +1,42 @@
+- name: a play that runs entirely on the ansible host
+  hosts: 127.0.0.1
+  connection: local
+  tasks:
+
+   - name: Find the kubernets TGZ file 
+     find:
+         paths: "{{ lookup('env', 'pkg_location') }}"
+         patterns: "contrail-kubernetes-docker_*"
+         recurse:          "yes"
+         file_type:        "file"
+     register: find_result
+   - set_fact:
+       pkg_name: "{{ find_result.files[0].path}}"
+       workplace: "{{ lookup('env', 'workplace') }}"  
+       contrail_version: "{{ lookup('env', 'contrail_version') }}"  
+
+   - name: Untar Contaril Kubernets  tgz file
+     unarchive: copy=no src={{pkg_name}} dest={{ workplace }}
+
+   - name: Untar contrail ansible tgz 
+     unarchive: copy=no src={{ workplace}}/contrail-networking-tools_{{contrail_version}}.tgz dest={{workplace}}
+
+
+   - name: Untar contrail networking tools 
+     unarchive: copy=no src={{workplace}}/contrail-networking-tools_{{contrail_version}}.tgz dest={{workplace}}
+
+   - name: Untar contrail ansible tgz 
+     unarchive: copy=no src=/tmp/contrail-ansible/contrail-ansible-{{contrail_version}}.tar.gz dest={{workplace}}
+
+   - name: Creates docker images folder under contrail ansible play book folder 
+     file: path={{workplace}}/playbooks/container_images state=directory
+
+   - name: Untar docker images and put in container_images
+     unarchive: copy=no src={{workplace}}/contrail-kubernetes-docker-images_{{contrail_version}}.tgz dest={{workplace}}/playbooks/container_images
+
+
+
+
+   
+
+
