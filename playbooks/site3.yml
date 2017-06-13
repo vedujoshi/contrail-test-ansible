@@ -26,7 +26,7 @@
      unarchive: copy=no src={{workplace}}/contrail-networking-tools_{{contrail_version}}.tgz dest={{workplace}}
 
    - name: Untar contrail ansible tgz 
-     unarchive: copy=no src=/tmp/contrail-ansible/contrail-ansible-{{contrail_version}}.tar.gz dest={{workplace}}
+     unarchive: copy=no src={{workplace}}/contrail-ansible-{{contrail_version}}.tar.gz dest={{workplace}}
 
    - name: Creates docker images folder under contrail ansible play book folder 
      file: path={{workplace}}/playbooks/container_images state=directory
