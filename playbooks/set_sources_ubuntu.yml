@@ -1,0 +1,6 @@
+- hosts: all
+  tasks:
+   - name: Update sources for ubuntu
+     script: ./utils/set_sources_ubuntu.sh
+     when:
+       - ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
