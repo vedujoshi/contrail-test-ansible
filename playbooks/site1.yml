@@ -86,6 +86,10 @@
    - name: kubeadm join on slaves
      shell: "{{kubeadm}} --skip-preflight-checks"
      tags: kubeadm_init
+   - name: restart kubelet on slaves as workaround for https://github.com/kubernetes/release/issues/171
+     systemd:
+       state: restarted
+       name: kubelet
 
 - hosts: kubernetes-master
   tasks:
