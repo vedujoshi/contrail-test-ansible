@@ -1,4 +1,7 @@
 - hosts: kubernetes-master,kubernetes-slaves
+  vars:
+    ubuntu_kube_version: 1.7.5-00
+    centos_kube_version: 1.7.5-0
   tasks:
    - name: Setup sources for ubuntu
      script: ./utils/update_sources_ubuntu.sh
@@ -14,9 +17,9 @@
      apt: name={{ item }} state=present allow_unauthenticated=yes
      with_items:
       - docker-engine
-      - kubelet
-      - kubeadm
-      - kubectl
+      - kubelet={{ ubuntu_kube_version }}
+      - kubeadm={{ ubuntu_kube_version }}
+      - kubectl={{ ubuntu_kube_version }}
       - kubernetes-cni
      when:
        - ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
@@ -26,9 +29,9 @@
      package: name={{ item }} state=present
      with_items:
       - docker
-      - kubelet
-      - kubeadm
-      - kubectl
+      - kubelet-{{ centos_kube_version }}
+      - kubeadm-{{ centos_kube_version }}
+      - kubectl-{{ centos_kube_version }}
       - kubernetes-cni
      when:
        - ansible_os_family == 'RedHat'
