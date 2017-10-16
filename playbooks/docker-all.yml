@@ -1,0 +1,32 @@
+- hosts: all
+  tasks:
+   - name: Setup sources for ubuntu
+     script: ./utils/update_sources_ubuntu.sh
+     when:
+       - ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+   - name: Setup sources for Centos
+     script: ./utils/set_sources_centos.sh
+     when:
+       - ansible_os_family == 'RedHat'
+
+   - name: Install docker packages on Ubuntu
+     apt: name={{ item }} state=present allow_unauthenticated=yes
+     with_items:
+      - docker-engine
+     when:
+       - ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
+
+   - name: Install docker, k8s on centos
+     package: name={{ item }} state=present
+     with_items:
+      - docker
+     when:
+       - ansible_os_family == 'RedHat'
+
+   - name: Enable services on centos
+     service: name={{ item }} state=started enabled=yes
+     with_items:
+      - docker
+     when:
+       - ansible_os_family == 'RedHat'
