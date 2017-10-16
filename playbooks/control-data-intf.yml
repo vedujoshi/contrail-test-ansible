@@ -1,0 +1,11 @@
+---
+- name: Setup control-data intf
+  hosts: control-data-nodes
+  vars:
+   network_ether_interfaces:
+    - device: "{{ interface }}"
+      bootproto: "{{ bootproto }}"
+      address: "{{ address }}"
+      netmask: "{{ netmask }}"
+  roles:
+   - adriagalin.network_interface
