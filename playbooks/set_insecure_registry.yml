@@ -1,0 +1,21 @@
+- hosts: all
+  tasks:
+   - stat: path=/etc/default/docker
+     register: docker_file
+   - set_fact: registry_entry="{{ lookup('env', 'INSECURE_REGISTRY') }}"
+   - name: Delete matching insecure registry if any
+     shell: sed -i 's/--insecure-registry {{ registry_entry }}//g' /etc/default/docker
+     when: docker_file.stat.exists
+   - name: Update docker to use insecure registry
+     shell: sed -i '/^DOCKER_OPTS/ s/"$/--insecure-registry {{ registry_entry }}"/' /etc/default/docker
+     when: docker_file.stat.exists
+   - name: Do daemon reload
+     shell: systemctl daemon-reload
+     when: docker_file.stat.exists
+   - name: Restart docker service
+     systemd:
+        state: restarted
+        name: docker
+   - name: Sleep 20 sec
+     pause:
+        seconds: 20
