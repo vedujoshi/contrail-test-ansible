@@ -1,0 +1,11 @@
+# Gather facts so that ansible_hostname is available
+- hosts: contrail-controllers
+  remote_user: root
+  tasks: []
+
+- hosts: kubernetes-master
+  tasks:
+   - name: Set labels to run contrail controller containers
+     shell: kubectl label --overwrite node {{ hostvars[item]['ansible_hostname'] }} opencontrail.org/controller=true
+     with_items: "{{groups['contrail-controllers']}}"
+     ignore_errors: yes
