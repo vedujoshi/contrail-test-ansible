@@ -13,7 +13,7 @@
    - name: Install docker packages on Ubuntu
      apt: name={{ item }} state=present allow_unauthenticated=yes
      with_items:
-      - docker-engine
+       - docker-engine=1.12.6-0~ubuntu-xenial
      when:
        - ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
 

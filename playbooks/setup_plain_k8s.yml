@@ -15,17 +15,16 @@
        - ansible_os_family == 'RedHat'
 
    - name: Install packages on Ubuntu
-     apt: name={{ item }} state=present  force=yes allow_unauthenticated=yes
+     apt: name={{ item }} state=present force=yes
      with_items:
       - docker-engine={{ ubuntu_docker_version }}
       - kubelet={{ ubuntu_kube_version }}
       - kubeadm={{ ubuntu_kube_version }}
       - kubectl={{ ubuntu_kube_version }}
       - kubernetes-cni
+
      when:
        - ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
-
-
    - name: Install docker, k8s on centos
      package: name={{ item }} state=present
      with_items:
@@ -48,22 +47,6 @@
    - name: Update iptables
      shell: echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables
 
-
-- hosts: kubernetes-master
-  tasks:
-   - name: Update kubeadm.conf
-     lineinfile: dest=/etc/systemd/system/kubelet.service.d/10-kubeadm.conf state=absent regexp="^Environment=\"KUBELET_NETWORK_ARGS"
-
-   - name: restart kubelet
-     systemd:
-       state: restarted
-       daemon_reload: yes
-       name: kubelet
-
-   - name: Sleep 10 sec
-     pause: 
-       seconds: 10
-
    - name: kubeadm init on master
      shell: "kubeadm reset > /dev/null 2>&1; kubeadm init |grep 'kubeadm join'"
      register: kubeadm_output
@@ -81,7 +64,7 @@
       kubeadm: "{{hostvars[groups['kubernetes-master'][0]].kubejoin_cmd}}"
    - name: Stop kubepods-burstable as WA for bug https://github.com/kubernetes/kubernetes/issues/43856
      command: systemctl stop kubepods-burstable.slice
-     when: 
+     when:
        - ansible_os_family == 'RedHat'
    - name: Reset kubeadm
      shell: kubeadm reset
@@ -96,7 +79,7 @@
 
 - hosts: kubernetes-master
   tasks:
-   - name: Enable k8s insecure access 
+   - name: Enable k8s insecure access
      shell: "sed -i 's/.*insecure-port.*/    - --insecure-port=8080/g' /etc/kubernetes/manifests/kube-apiserver.yaml"
    - name: Restart kubelet
      systemd:
@@ -104,18 +87,3 @@
        name: kubelet
    - name: Wait for kubelet to stabilize
      shell: sleep 20
-   - name: Update kube-dns deployment
-     script: ./utils/update_kubedns.sh
-   - name: Create cluster role binding for contrail-kube-manager
-     shell: "kubectl create clusterrolebinding contrail-kube-manager --clusterrole=cluster-admin --serviceaccount=default:default"
-   - name: Write secret token to secret.txt
-     shell: "kubectl describe secret default | grep \"token:\" | awk '{ print $2}'"
-     register: secret_token
-   - set_fact:
-       secret_token_text: "{{secret_token.stdout}}"
-
-- hosts: localhost
-  tasks:
-   - set_fact:
-      secret_token_text: "{{hostvars[groups['kubernetes-master'][0]].secret_token_text}}"
-   - copy: content="{{ secret_token_text }}" dest={{ playbook_dir }}/secret.txt
