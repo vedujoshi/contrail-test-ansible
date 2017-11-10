@@ -1,0 +1,13 @@
+# Gather facts so that ansible_hostname is available
+- hosts: contrail-controllers
+  remote_user: root
+  tasks: []
+
+- hosts: contrail-controllers
+  tasks:
+   - name: Delete matching insecure registry if any
+     shell: sed -i "/^{{ item }} /d" /etc/hosts
+     with_items: "{{groups['contrail-controllers']}}"
+   - name: Add host entry
+     shell: echo "{{ item }}" "{{ hostvars[item]['ansible_hostname'] }}" >> /etc/hosts
+     with_items: "{{groups['contrail-controllers']}}"
