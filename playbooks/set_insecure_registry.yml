@@ -1,21 +1,35 @@
+
 - hosts: all
   tasks:
-   - stat: path=/etc/default/docker
-     register: docker_file
+   - stat: path=/usr/lib/systemd/system/docker.service
+     register: docker_file_2
+   - stat: path=/lib/systemd/system/docker.service
+     register: docker_file_1
+   - set_fact: docker_file={{ docker_file_1.stat.path }}
+     when: docker_file_1.stat.exists
+   - set_fact: docker_file={{ docker_file_2.stat.path }}
+     when: docker_file_2.stat.exists
    - set_fact: registry_entry="{{ lookup('env', 'INSECURE_REGISTRY') }}"
-   - name: Delete matching insecure registry if any
-     shell: sed -i 's/--insecure-registry {{ registry_entry }}//g' /etc/default/docker
-     when: docker_file.stat.exists
-   - name: Update docker to use insecure registry
-     shell: sed -i '/^DOCKER_OPTS/ s/"$/--insecure-registry {{ registry_entry }}"/' /etc/default/docker
-     when: docker_file.stat.exists
-   - name: Do daemon reload
-     shell: systemctl daemon-reload
-     when: docker_file.stat.exists
-   - name: Restart docker service
-     systemd:
-        state: restarted
-        name: docker
-   - name: Sleep 20 sec
-     pause:
-        seconds: 20
+
+   - name: Update docker.service
+     block:
+         - name: Delete matching insecure registry if any
+           shell: sed -i 's/--insecure-registry {{ registry_entry }}//g' {{ docker_file }}
+
+         - name: Update docker to use insecure registry
+           shell: sed -i '/^ExecStart/ s/$/ --insecure-registry {{ registry_entry }}/' {{ docker_file }}
+
+         - name: Do daemon reload
+           shell: systemctl daemon-reload
+
+         - name: Restart docker service
+           systemd:
+              state: restarted
+              name: docker
+         - name: Sleep 20 sec
+           pause:
+              seconds: 20
+     when:
+       - docker_file is defined
+       - registry_entry != ''
+
