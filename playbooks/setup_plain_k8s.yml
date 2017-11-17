@@ -47,9 +47,24 @@
    - name: Update iptables
      shell: echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables
 
+- hosts: kubernetes-master
+   - set_fact:
+       km_ctrl_data_ip: "{{ hostvars[inventory_hostname]['ctrl_data_ip'] }}"
+     when:
+       -  hostvars[inventory_hostname].ctrl_data_ip is defined
+
    - name: kubeadm init on master
-     shell: "kubeadm reset > /dev/null 2>&1; kubeadm init |grep 'kubeadm join'"
+     shell: "kubeadm reset > /dev/null 2>&1;  kubeadm init | grep 'kubeadm join'"
      register: kubeadm_output
+     when:
+        - km_ctrl_data_ip is not defined
+
+   - name: kubeadm init on master if control-data-ip is defined
+     shell: "kubeadm reset > /dev/null 2>&1;  kubeadm init --apiserver-cert-extra-sans {{ km_ctrl_data_ip }} | grep 'kubeadm join'"
+     register: kubeadm_output
+     when:
+        - km_ctrl_data_ip is defined
+
    - set_fact:
        kubejoin_cmd: "{{kubeadm_output.stdout}}"
      tags: kubeadm_init

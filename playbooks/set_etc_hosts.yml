@@ -1,13 +1,26 @@
 # Gather facts so that ansible_hostname is available
-- hosts: contrail-controllers
+- hosts: contrail-controllers,contrail-compute
   remote_user: root
   tasks: []
 
-- hosts: contrail-controllers
+- hosts: contrail-controllers,contrail-compute
   tasks:
-   - name: Delete matching insecure registry if any
-     shell: sed -i "/^{{ item }} /d" /etc/hosts
-     with_items: "{{groups['contrail-controllers']}}"
+   - name: Get a random number of backup
+     set_fact:
+        random_number: "{{ 1000 | random }}"
+
+   - name: Delete matching host entries if any
+     shell: |
+        cp /etc/hosts /etc/hosts.backup."{{ random_number }}"
+        sed -i "/^{{ item }} /d" /etc/hosts
+        sed -i "/^{{ hostvars[item].get('ctrl_data_ip',item) }} /d" /etc/hosts
+        sed -i "/{{ hostvars[item]['ansible_hostname'] }}$/d" /etc/hosts
+        sed -i "/{{ hostvars[item]['ansible_hostname'] }} /d" /etc/hosts
+     with_items:
+       - "{{groups['contrail-controllers']}}"
+       - "{{groups['contrail-compute']}}"
    - name: Add host entry
-     shell: echo "{{ item }}" "{{ hostvars[item]['ansible_hostname'] }}" >> /etc/hosts
-     with_items: "{{groups['contrail-controllers']}}"
+     shell: echo "{{ hostvars[item].get('ctrl_data_ip',item) }}" "{{ hostvars[item]['ansible_hostname'] }}" >> /etc/hosts
+     with_items:
+       - "{{groups['contrail-controllers']}}"
+       - "{{groups['contrail-compute']}}"
