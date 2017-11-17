@@ -1,0 +1,16 @@
+- hosts: kubernetes-slaves
+  tasks:
+   - name: check if agent container launched on agent or not
+     shell: docker ps -f status=exited,name=agent -q| wc -l
+     register: agent_container_count
+
+   - name: Restart docker engine if agent container not running
+     systemd:
+       state: restarted
+       name: docker
+     when:
+       - agent_container_count.stdout  != "0"
+
+   - name: Sleep 20 sec
+     pause:
+       seconds: 20
