@@ -1,4 +1,5 @@
 ---
+
 - name: Setup control-data intf
   hosts: control-data-nodes
   vars:
@@ -7,5 +8,24 @@
       bootproto: "{{ bootproto }}"
       address: "{{ address }}"
       netmask: "{{ netmask }}"
+   when:
+     - interface != "bond0"
   roles:
    - adriagalin.network_interface
+
+
+- name: Setup control-data bond intf
+  hosts: control-data-nodes
+  vars:
+   network_bond_interfaces:
+    - device: "{{ interface }}"
+      address: "{{ address }}"
+      netmask: "{{ netmask }}"
+      bootproto: "{{ bootproto }}"
+      bond_mode: "{{ bond_mode }}"
+      bond_slaves: "{{ bond_slaves }}"
+   when:
+     - interface == "bond0"
+  roles:
+   - adriagalin.network_interface
+
