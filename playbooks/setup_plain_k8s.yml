@@ -48,6 +48,7 @@
      shell: echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables
 
 - hosts: kubernetes-master
+  tasks:
    - set_fact:
        km_ctrl_data_ip: "{{ hostvars[inventory_hostname]['ctrl_data_ip'] }}"
      when:
