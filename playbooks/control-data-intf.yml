@@ -11,8 +11,7 @@
    when:
      - interface != "bond0"
   roles:
-   - adriagalin.network_interface
-
+    - { role: adriagalin.network_interface, when: interface != "bond0" }
 
 - name: Setup control-data bond intf
   hosts: control-data-nodes
@@ -27,5 +26,5 @@
    when:
      - interface == "bond0"
   roles:
-   - adriagalin.network_interface
+   - { role: adriagalin.network_interface, when: interface == "bond0" }
 
