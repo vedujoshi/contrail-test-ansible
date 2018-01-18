@@ -1,7 +1,7 @@
 - hosts: kubernetes-master,kubernetes-slaves
   vars:
-    ubuntu_kube_version: 1.7.5-00
-    centos_kube_version: 1.7.5-0
+    ubuntu_kube_version: 1.9.1-00
+    centos_kube_version: 1.9.1-0
     ubuntu_docker_version: 1.12.6-0~ubuntu-xenial
   tasks:
    - name: Setup sources for ubuntu
@@ -54,6 +54,9 @@
    - name: Update kubeadm.conf
      lineinfile: dest=/etc/systemd/system/kubelet.service.d/10-kubeadm.conf state=absent regexp="^Environment=\"KUBELET_NETWORK_ARGS"
 
+   - name: Update kubeadm.conf for ignoring swap. Applicable for kube version greater than 1.9
+     lineinfile: dest=/etc/systemd/system/kubelet.service.d/10-kubeadm.conf line='Environment="KUBELET_EXTRA_ARGS=--fail-swap-on=false"' insertafter='Environment.*'
+   
    - name: restart kubelet
      systemd:
        state: restarted
@@ -68,7 +71,7 @@
        km_ctrl_data_ip: "{{ hostvars[inventory_hostname].get('ctrl_data_ip', hostvars[inventory_hostname]['inventory_hostname']) }}"
 
    - name: kubeadm init on master if control-data-ip is defined
-     shell: "kubeadm reset > /dev/null 2>&1;  kubeadm init --apiserver-cert-extra-sans {{ km_ctrl_data_ip }} | grep 'kubeadm join'"
+     shell: "kubeadm reset > /dev/null 2>&1;  kubeadm init --apiserver-cert-extra-sans {{ km_ctrl_data_ip }} --ignore-preflight-errors Swap | grep 'kubeadm join'"
      register: kubeadm_output
 
    - set_fact:
@@ -94,9 +97,13 @@
    - name: kubeadm join on slaves
      shell: "{{kubeadm}} --skip-preflight-checks"
      tags: kubeadm_init
-   - name: restart kubelet on slaves as workaround for https://github.com/kubernetes/release/issues/171
+
+   - name: Update kubeadm.conf for ignoring swap. Applicable for kube version greater than 1.9
+     lineinfile: dest=/etc/systemd/system/kubelet.service.d/10-kubeadm.conf line='Environment="KUBELET_EXTRA_ARGS=--fail-swap-on=false"' insertafter='Environment.*'
+   - name: restart kubelet on slaves as workaround for https://github.com/kubernetes/release/issues/171. Also, reload daemon as system file has changed
      systemd:
        state: restarted
+       daemon_reload: yes
        name: kubelet
 
 - hosts: kubernetes-master

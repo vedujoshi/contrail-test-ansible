@@ -10,5 +10,5 @@ kubectl patch deployment kube-dns --namespace=kube-system --type='json' -p='[{"o
 kubectl patch deployment kube-dns --namespace=kube-system --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/2/livenessProbe", "value": {"exec": {"command": ["ls"]}}}]'
 
 kubectl patch deployment kube-dns --namespace=kube-system --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/readinessProbe", "value": {"exec": {"command": ["ping", "-c", "1", "127.0.0.1"]}}}]'
-kubectl patch deployment kube-dns --namespace=kube-system --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/1/readinessProbe", "value": {"exec": {"command": ["ping", "-c", "1", "127.0.0.1"]}}}]'
-kubectl patch deployment kube-dns --namespace=kube-system --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/2/readinessProbe", "value": {"exec": {"command": ["ls"]}}}]'
+#kubectl patch deployment kube-dns --namespace=kube-system --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/1/readinessProbe", "value": {"exec": {"command": ["ping", "-c", "1", "127.0.0.1"]}}}]'
+#kubectl patch deployment kube-dns --namespace=kube-system --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/2/readinessProbe", "value": {"exec": {"command": ["ls"]}}}]'
