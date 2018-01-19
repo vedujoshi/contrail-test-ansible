@@ -1,7 +1,7 @@
 - hosts: kubernetes-master,kubernetes-slaves
   vars:
-    ubuntu_kube_version: 1.9.1-00
-    centos_kube_version: 1.9.1-0
+    ubuntu_kube_version: 1.9.2-00
+    centos_kube_version: 1.9.2-0
     ubuntu_docker_version: 1.12.6-0~ubuntu-xenial
   tasks:
    - name: Setup sources for ubuntu
